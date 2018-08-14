@@ -179,11 +179,11 @@ class MyHTMLParser(HTMLParser):
                 self.text+=data
             '''
             if self.spanCount==2 and self.lasttag=='span':
-                self.text+=data
+                self.text=self.text+data if data[-1]==' ' else self.text+data+' '
             #elif self.headerOne==True and self.lasttag=='p' and len(data)>150:
             #    self.text+=data
             elif self.spanCnt==2:
-                self.text+=data
+                self.text=self.text+data if data[-1]==' ' else self.text+data+' '
             else:
                 pass
         elif self.temp=='yogiadityanath.in':
@@ -241,30 +241,37 @@ def processOneFileAtATime(f,fw,domWanted,visited,mp):
 
 
 def thatProcess(id,path,domw):
-    f=open(path,'r')
     print('Running process %s, pid is %s' %(id,os.getpid()))
     mp=MyHTMLParser(domw)
     print('mp%s created'%id)
     fw=open('./webPages/webText%s'%id,'w')
     print('lalala')
+    path=str(path)
+    if os.system('zstd -d '+path)==0:
+        path=path[:-5]
+    else:
+        os.system('rm '+path[:-5])
+        return
+    f=open(path,'r')
     visited=set()
     processOneFileAtATime(f,fw,domw,visited,mp)
     fw.close()
     f.close()
+    os.system('rm '+path)
     print('Finished process %s, pid  %s' %(id,os.getpid()))
 
 
 
-dataset='./ded/'
+dataset='./'
 fileList=os.listdir(dataset)
-p=Pool(16)
+p=Pool(8)
 domw=input('Input the domain name: ')
 
 for i in range(0,len(fileList)):
     print(i)
     path=os.path.join(dataset,fileList[i])
     print(path)
-    if os.path.isfile(path):
+    if os.path.isfile(path) and 'zstd' in str(path):
         p.apply_async(thatProcess,args=(i,path,domw))
 
 p.close()
